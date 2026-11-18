@@ -130,7 +130,7 @@ def classify(
     term,
     openai_key=None,
     search_key=None,
-    model="gemini-2.5-flash"
+    model="gemini-3.8-flash"
 ):
 
     term = term.strip()
