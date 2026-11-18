@@ -51,27 +51,82 @@ def classify(term, openai_key=None, search_key=None, model='gpt-4.1-mini'):
     result['nota']='Classificação qualitativa por IA, não validação de volume de buscas ou vendas.'
     return result
 
+
 def excel_bytes(results):
-    from artifact_tool import Workbook,SpreadsheetFile
-    import tempfile
-    from pathlib import Path
-    wb=Workbook.create()
-    headers=['Produto informado','Produto genérico','Categoria','Confiança','Justificativa','Lacunas','Fontes consultadas','Google Trends BR 12m','Data UTC','Nota']
-    for cat in ('Necessidade','Desejo','Sazonal'):
-        ws=wb.worksheets.add(cat)
-        ws.get_range('A1:J1').values=[headers]
-        ws.get_range('A1:J1').format={'fill':'#16324A','font':{'bold':True,'color':'#FFFFFF'},'row_height':32,'wrap_text':True}
-        rows=[]
-        for x in results:
-            if x.get('categoria')!=cat: continue
-            rows.append([x.get('produto_informado',''),x.get('produto_generico',''),cat,x.get('confianca',''),x.get('justificativa',''),x.get('lacunas',''),'\n'.join(y['url'] for y in x.get('fontes_consultadas',[])),x.get('google_trends_link',''),x.get('data_pesquisa_utc',''),x.get('nota','')])
-        if rows:
-            ws.get_range_by_indexes(1,0,len(rows),10).values=rows
-            ws.get_range_by_indexes(1,0,len(rows),10).format.row_height=54
-        for col,width in {'A':31,'B':30,'C':18,'D':17,'E':75,'F':65,'G':80,'H':80,'I':29,'J':65}.items():
-            ws.get_range(f'{col}:{col}').format.column_width=width
-        ws.freeze_panes.freeze_rows(1)
-    with tempfile.TemporaryDirectory() as d:
-        p=Path(d)/'classificacao.xlsx'
-        SpreadsheetFile.export_xlsx(wb).save(str(p))
-        return p.read_bytes()
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    headers = [
+        "Produto informado",
+        "Produto genérico",
+        "Categoria",
+        "Confiança",
+        "Justificativa",
+        "Lacunas",
+        "Fontes consultadas",
+        "Google Trends BR 12m",
+        "Data UTC",
+        "Nota"
+    ]
+
+    for categoria in ("Necessidade", "Desejo", "Sazonal"):
+        ws = wb.create_sheet(categoria)
+        ws.append(headers)
+
+        for resultado in results:
+            if resultado.get("categoria") != categoria:
+                continue
+
+            fontes = "\n".join(
+                fonte.get("url", "")
+                for fonte in resultado.get("fontes_consultadas", [])
+            )
+
+            ws.append([
+                resultado.get("produto_informado", ""),
+                resultado.get("produto_generico", ""),
+                categoria,
+                resultado.get("confianca", ""),
+                resultado.get("justificativa", ""),
+                resultado.get("lacunas", ""),
+                fontes,
+                resultado.get("google_trends_link", ""),
+                resultado.get("data_pesquisa_utc", ""),
+                resultado.get("nota", "")
+            ])
+
+        for cell in ws[1]:
+            cell.fill = PatternFill(
+                start_color="16324A",
+                end_color="16324A",
+                fill_type="solid"
+            )
+            cell.font = Font(color="FFFFFF", bold=True)
+            cell.alignment = Alignment(wrap_text=True)
+
+        widths = [31, 30, 18, 17, 75, 65, 80, 80, 29, 65]
+
+        for index, width in enumerate(widths, start=1):
+            ws.column_dimensions[
+                get_column_letter(index)
+            ].width = width
+
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(
+                    wrap_text=True,
+                    vertical="top"
+                )
+
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+
+    arquivo = BytesIO()
+    wb.save(arquivo)
+    return arquivo.getvalue()
+
