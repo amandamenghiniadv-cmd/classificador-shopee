@@ -3,6 +3,10 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import streamlit as st
 from engine import classify,excel_bytes
+
+if "GEMINI_API_KEY" in st.secrets:
+    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+
 st.set_page_config(page_title='Classificador de Produtos',page_icon='🔎',layout='wide')
 st.title('🔎 Classificador de Produtos')
 st.caption('Necessidade · Desejo · Sazonal | Metodologia do Cauê Oliveira | Brasil')
