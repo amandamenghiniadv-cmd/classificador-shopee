@@ -6,6 +6,9 @@ from engine import classify,excel_bytes
 
 if "GEMINI_API_KEY" in st.secrets:
     os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+    
+if "SERPAPI_KEY" in st.secrets:
+    os.environ["SERPAPI_KEY"] = st.secrets["SERPAPI_KEY"]
 
 st.set_page_config(page_title='Classificador de Produtos',page_icon='🔎',layout='wide')
 st.title('🔎 Classificador de Produtos')
